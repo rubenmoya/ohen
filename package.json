@@ -11,6 +11,7 @@
   "author": "Ruben Moya <rmoyarodriguez@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "jest": "^21.0.1",
     "webpack": "^3.5.5",
     "webpack-dev-server": "^2.7.1"
   }
