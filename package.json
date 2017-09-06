@@ -11,6 +11,9 @@
   "author": "Ruben Moya <rmoyarodriguez@gmail.com>",
   "license": "MIT",
   "devDependencies": {
+    "eslint": "^4.6.1",
+    "eslint-config-airbnb-base": "^12.0.0",
+    "eslint-plugin-import": "^2.7.0",
     "jest": "^21.0.1",
     "webpack": "^3.5.5",
     "webpack-dev-server": "^2.7.1"
