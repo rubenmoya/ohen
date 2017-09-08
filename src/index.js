@@ -1,4 +1,4 @@
-const { isObject } = require('./utils');
+const { isArray, isFunction, isObject } = require('./utils');
 
 const DEFAULT_EVENTS = ['add', 'update', 'delete'];
 const observed = new Map();
@@ -10,11 +10,11 @@ const requestAnimationFrame = global.requestAnimationFrame
     || global.msRequestAnimationFrame
     || (callback => global.setTimeout(callback, 1000 / 60));
 
-const observe = (object, handler, events) => {
+const observeObject = (object, callback, events) => {
   let data = observed.get(object);
 
   if (data) {
-    return setHandler(object, data, handler, events);
+    return setHandler(object, data, callback, events);
   }
 
   data = {
@@ -24,13 +24,59 @@ const observe = (object, handler, events) => {
   };
 
   observed.set(object, data);
-  setHandler(object, data, handler, events);
+  setHandler(object, data, callback, events);
 
   if (observed.size === 1) {
     return requestAnimationFrame(runGlobalLoop);
   }
+};
 
-  return Unobserve;
+const checkObject = (data, object, except) => {
+  if (!data.handlers.size) return;
+  const { properties, values } = data;
+  const toDelete = properties.slice();
+
+  Object.keys(object).forEach((name, index) => {
+    const value = object[name];
+
+    if (properties.includes(name)) {
+      const oldValue = values[index];
+      toDelete[index] = null;
+
+      // eslint-disable-next-line
+      if ((oldValue === value ? oldValue === 0 && 1 / oldValue !== 1 / value : oldValue === oldValue || value === value)) {
+        addChangeRecord(object, data, { name, type: 'update', object, oldValue }, except);
+        data.values[index] = value;
+      }
+    } else {
+      addChangeRecord(object, data, { name, type: 'add', object }, except);
+      properties.push(name);
+      values.push(value);
+    }
+  });
+
+  toDelete.forEach((name, index) => {
+    if (name === null) return;
+    const oldValue = values[index];
+    addChangeRecord(object, data, { name, type: 'delete', object, oldValue }, except);
+    data.properties.splice(index, 1);
+    data.values.splice(index, 1);
+  });
+};
+
+const runGlobalLoop = () => {
+  if (observed.size) {
+    observed.forEach(checkObject);
+    handlers.forEach(notifyHandlers);
+    requestAnimationFrame(runGlobalLoop);
+  }
+};
+
+const notifyHandlers = (handlerData, handler) => {
+  if (handlerData.changeRecords.length) {
+    handler(handlerData.changeRecords);
+    handlerData.changeRecords = [];
+  }
 };
 
 const setHandler = (object, data, handler, events) => {
@@ -40,56 +86,8 @@ const setHandler = (object, data, handler, events) => {
   return data.handlers.set(handler, handlerData);
 };
 
-const check = (data, object, except) => {
-  if (!data.handlers.size) return;
-
-  const { values } = data;
-  const properties = data.properties.slice();
-  let propertiesLength = properties.length;
-
-  Object.keys(object).forEach((name) => {
-    const index = properties.indexOf(name);
-    const value = object[name];
-
-    if (index === -1) {
-      addChangeRecord(object, data, { name, type: 'add', object }, except);
-      data.properties.push(name);
-      values.push(value);
-    } else {
-      const oldValue = values[index];
-      properties[index] = null;
-      propertiesLength -= 1;
-      if ((oldValue === value ? oldValue === 0 && 1 / oldValue !== 1 / value : oldValue === oldValue || value === value)) { // eslint-disable-line
-        addChangeRecord(object, data, {
-          name,
-          type: 'update',
-          object,
-          oldValue,
-        }, except);
-        data.values[index] = value;
-      }
-    }
-  });
-
-  let i = properties.length;
-  while (propertiesLength) {
-    i -= 1;
-    if (properties[i] !== null) {
-      addChangeRecord(object, data, {
-        name: properties[i],
-        type: 'delete',
-        object,
-        oldValue: values[i],
-      }, except);
-      data.properties.splice(i, 1);
-      data.values.splice(i, 1);
-      propertiesLength -= 1;
-    }
-  }
-};
-
 const addChangeRecord = (object, data, changeRecord, except) => {
-  data.handlers.forEach((handlerData) => {
+  data.handlers.forEach(handlerData => {
     const { events } = handlerData.observed.get(object);
     if ((typeof except !== 'string' || events.indexOf(except) === -1) && events.indexOf(changeRecord.type) > -1) {
       handlerData.changeRecords.push(changeRecord);
@@ -97,75 +95,53 @@ const addChangeRecord = (object, data, changeRecord, except) => {
   });
 };
 
-const notify = (handlerData, handler) => {
-  if (handlerData.changeRecords.length) {
-    handler(handlerData.changeRecords);
-    handlerData.changeRecords = [];
-  }
-};
-
-const runGlobalLoop = () => {
-  if (observed.size) {
-    observed.forEach(check);
-    handlers.forEach(notify);
-    requestAnimationFrame(runGlobalLoop);
-  }
-};
-
-/*
-  @function Object.observe
-  @see http://arv.github.io/ecmascript-object-observe/#Object.observe
- */
-const Observe = (object, handler, events) => {
+const observe = (object, handler, events) => {
   if (!isObject(object)) {
-    throw new TypeError('Object.observe cannot observe non-object');
-  }
-  if (typeof handler !== 'function') {
-    throw new TypeError('Object.observe cannot deliver to non-function');
-  }
-  if (Object.isFrozen && Object.isFrozen(handler)) {
-    throw new TypeError('Object.observe cannot deliver to a frozen function object');
-  }
-  if (arguments.length > 2 && typeof events !== 'object') {
-    throw new TypeError('Object.observe cannot use non-object accept list');
+    throw new TypeError('Ohen.observe cannot observe a non-object.');
   }
 
-  return observe(object, handler, events || DEFAULT_EVENTS);
+  if (!isFunction(handler)) {
+    console.log(typeof handler);
+    throw new TypeError('Ohen.observe cannot deliver to non-function.');
+  }
+
+  if (Object.isFrozen(handler)) {
+    throw new TypeError('Ohen.observe cannot deliver to a frozen function object.');
+  }
+
+  if (arguments.length > 2 && !isArray(events)) {
+    throw new TypeError('Third argument of Ohen.observe must be an array of strings.');
+  }
+
+  return observeObject(object, handler, events || DEFAULT_EVENTS);
 };
 
-/*
-  @function Object.unobserve
-  @see http://arv.github.io/ecmascript-object-observe/#Object.unobserve
- */
-const Unobserve = (object, handler) => {
+const unobserve = (object, handler) => {
   if (!isObject(object)) {
-    throw new TypeError('Object.unobserve cannot unobserve non-object');
+    throw new TypeError('Ohen.unobserve cannot unobserve a non-object');
   }
 
   if (typeof handler !== 'function') {
-    throw new TypeError('Object.unobserve cannot deliver to non-function');
+    throw new TypeError('Ohen.unobserve cannot deliver to non-function');
   }
 
   const handlerData = handlers.get(handler);
-  const odata = handlerData.observed.get(object);
+  const objectData = handlerData ? handlerData.observed.get(object) : null;
 
-  if (handlerData && odata) {
-    handlerData.observed.forEach((data, obj) => check(data.data, obj));
-    requestAnimationFrame(() => notify(handlerData, handler));
+  if (handlerData && objectData) {
+    handlerData.observed.forEach((data, obj) => checkObject(data.data, obj));
+    requestAnimationFrame(() => notifyHandlers(handlerData, handler));
 
-    if (handlerData.observed.size === 1 && handlerData.observed.has(object)) {
-      handlers.delete(handler);
-    } else {
-      handlerData.observed.delete(object);
-    }
+    handlerData.observed.size === 1 && handlerData.observed.has(object)
+      ? handlers.delete(handler)
+      : handlerData.observed.delete(object);
 
-    if (odata.data.handlers.size === 1) {
-      observed.delete(object);
-    } else {
-      odata.data.handlers.delete(handler);
-    }
+    objectData.data.handlers.size === 1
+      ? observed.delete(object)
+      : objectData.data.handlers.delete(handler);
   }
+
   return object;
 };
 
-export default Observe;
+module.exports = { observe, unobserve };
