@@ -7,6 +7,7 @@
   "scripts": {
     "build": "webpack",
     "start": "webpack-dev-server",
+    "lint": "eslint ./src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Ruben Moya <rmoyarodriguez@gmail.com>",
