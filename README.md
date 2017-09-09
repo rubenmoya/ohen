@@ -1,9 +1,8 @@
 # Ohen
-
-[![Greenkeeper badge](https://badges.greenkeeper.io/rubenmoya/ohen.svg)](https://greenkeeper.io/)
 > Ohen makes objects observable using dirty checking.
 
 [![Build Status](https://travis-ci.org/rubenmoya/ohen.svg?branch=master)](https://travis-ci.org/rubenmoya/ohen)
+[![Greenkeeper badge](https://badges.greenkeeper.io/rubenmoya/ohen.svg)](https://greenkeeper.io/)
 
 # Installation
 ```bash
