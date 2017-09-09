@@ -1,18 +1,30 @@
 const path = require('path');
+const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
 
 module.exports = {
   entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
-    // export itself to a global var
-    libraryTarget: "var",
-    // name of the global var: "Foo"
-    library: "Observable"
+    filename: 'ohen.js',
+    library: 'Ohen',
+    libraryTarget: 'umd',
+    umdNamedDefine: true,
   },
-  devServer: {
-    contentBase: path.resolve(__dirname, 'dist'),
-    inline: true,
-    port: 8080,
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: 'babel-loader',
+          query: {
+            presets: ['es2015'],
+          },
+        },
+      },
+    ],
   },
-}
+  plugins: [
+    new UglifyJSPlugin(),
+  ],
+};

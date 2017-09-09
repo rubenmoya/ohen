@@ -5,19 +5,34 @@
   "main": "dist/ohen.js",
   "jsnext:main": "src/ohen.js",
   "scripts": {
+    "clean": "rm -rf node_modules",
     "build": "webpack",
-    "start": "webpack-dev-server",
+    "start": "webpack --watch",
     "lint": "eslint ./src",
+    "prepublishOnly": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Ruben Moya <rmoyarodriguez@gmail.com>",
+  "author": {
+    "email": "rmoyarodriguez@gmail.com",
+    "name": "Ruben Moya",
+    "url": "https://github.com/rubenmoya"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rubenmoya/ohen.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rubenmoya/ohen/issues"
+  },
   "license": "MIT",
   "devDependencies": {
+    "babel-loader": "^7.1.2",
+    "babel-preset-es2015": "^6.24.1",
     "eslint": "^4.6.1",
     "eslint-config-airbnb-base": "^12.0.0",
     "eslint-plugin-import": "^2.7.0",
     "jest": "^21.0.1",
-    "webpack": "^3.5.5",
-    "webpack-dev-server": "^2.7.1"
+    "uglifyjs-webpack-plugin": "^0.4.6",
+    "webpack": "^3.5.5"
   }
 }
