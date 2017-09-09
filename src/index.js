@@ -101,7 +101,6 @@ const observe = (object, handler, events) => {
   }
 
   if (!isFunction(handler)) {
-    console.log(typeof handler);
     throw new TypeError('Ohen.observe cannot deliver to non-function.');
   }
 
